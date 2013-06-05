@@ -14,40 +14,66 @@ Options:
   Index Check Options:
     Options for the index checks
 
-    --index=INDEX       For index checks: the index to check
+    --index=INDEX       Name of a Splunk index, default is 'main'
 
   check_output Options:
     Options for TCP output check
 
-    --output=OUTPUT     For check_output: the TCP output to verify
+    --output=OUTPUT     Host/port pair of a forward-server
 
   check_cluster_peer Options:
     Options for cluster peer check
 
     --cluster-peer=CLUSTER_PEER
-                        For check_cluster_peer: the name of the peer to verify
+                        Name of a cluster slave (indexer)
 
   License Check Options:
     Options for license checks
 
     --license-pool=LICENSE_POOL
-                        For license checks: the license pool to check
+                        Name of a Splunk license pool, default is
+                        'auto_generated_pool_enterprise'
 
   check_search_peer Options:
     Options for search peer check
 
     --search-peer=SEARCH_PEER
-                        For check_search_peer: the indexer to verify
+                        Name of an indexer used by this search head
 
 Valid check commands:
-  cluster_complete         	Check that all buckets are complete
-  cluster_connection       	Verify slave is connected to master
-  cluster_peer             	Check that a cluster peer is connected to the master
-  cluster_status           	Verify clustering status of slave
-  cluster_valid            	Check that all buckets are valid
-  concurrent_searches      	Check the number of current running searches
-  index                    	Check the usage of a given index
-  index_latency            	Check the latency of a given index
-  license                  	Check usage of a given license pool
-  output                   	Check a TCP output for connectivity to the forward-server
-  search_peer              	Check connectivity to a given search peer
+  cluster_complete              Check that all buckets are complete
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_complete
+  cluster_connection            Verify slave is connected to master
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_connection
+  cluster_peer                  Check that a cluster peer is connected to the master
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --cluster-peer=acme-corp-indexer-01 cluster_peer
+  cluster_status                Verify clustering status of slave
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_status
+  cluster_valid                 Check that all buckets are valid
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_valid
+  concurrent_searches           Check the number of current running searches
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme -w 25 -c 50 concurrent_searches
+  index                         Check the usage of a given index
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --index=main -w 80 -c 90 index
+  index_latency                 Check the latency of a given index
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --index=main -w 5 -c 10 index_latency
+  license                       Check usage of a given license pool
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --license-pool=auto_generated_pool_enterprise license
+  license_master                Check connectivity to the license master
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme -w 60 -c 120 license_master
+  output                        Check a TCP output for connectivity to the forward-server
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --output=192.168.1.1:9997 output
+  search_peer                   Check connectivity to a given search peer
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --search-peer=acme-corp-indexer-01 search_peer
