@@ -1,0 +1,51 @@
+Usage: check_splunk.py [options] command
+
+Options:
+  -h, --help            show this help message and exit
+  -w WARNING            Warning level
+  -n                    Disable HTTPS (use http)
+  -H HOSTNAME           IP or FQDN of the Splunk server
+  -p PORT               splunkd Port on server, default 8089
+  -U USERNAME           Username used to log into Splunk
+  -P PASSWORD           Password used to log into Splunk
+  -Z                    Output in Zabbix format
+  -c CRITICAL           Critical level
+
+  Index Check Options:
+    Options for the index checks
+
+    --index=INDEX       For index checks: the index to check
+
+  check_output Options:
+    Options for TCP output check
+
+    --output=OUTPUT     For check_output: the TCP output to verify
+
+  check_cluster_peer Options:
+    Options for cluster peer check
+
+    --cluster-peer=CLUSTER_PEER
+                        For check_cluster_peer: the name of the peer to verify
+
+  License Check Options:
+    Options for license checks
+
+    --license-pool=LICENSE_POOL
+                        For license checks: the license pool to check
+
+  check_search_peer Options:
+    Options for search peer check
+
+    --search-peer=SEARCH_PEER
+                        For check_search_peer: the indexer to verify
+
+Valid check commands:
+  cluster_complete              Check that all buckets are complete
+  cluster_peer                  Check that a cluster peer is connected to the master
+  cluster_valid                 Check that all buckets are valid
+  concurrent_searches           Check the number of current running searches
+  index                         Check the usage of a given index
+  index_latency                 Check the latency of a given index
+  license                       Check usage of a given license pool
+  output                        Check a TCP output for connectivity to the forward-server
+  search_peer                   Check connectivity to a given search peer
