@@ -189,6 +189,13 @@ class SplunkServer(object):
             yield parse_sdict(sdict)
 
     @property
+    def deployment_clients(self):
+        root = self._get_url("/servicesNS/nobody/system/admin/deploymentserver/default/default.Clients?count=-1")
+        for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
+            sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+            yield parse_sdict(sdict)
+
+    @property
     def cluster_slave_info(self):
         root = self._get_url("/services/cluster/slave/info")
         return parse_sdict(root.find("./{http://www.w3.org/2005/Atom}entry[1]/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict"))
@@ -236,6 +243,19 @@ class SplunkServer(object):
 
     def get_cluster_peer_info(self, peer):
         return (_peer for _peer in self.cluster_peers if _peer["label"] == peer).next()
+
+    def get_deployment_client_info(self, deploy_client):
+        try:
+            return (_client for _client in self.deployment_clients if _client["id"] == deploy_client).next()
+        except StopIteration:
+            pass
+
+        try:
+            return (_client for _client in self.deployment_clients if _client["ip"] == deploy_client).next()
+        except StopIteration:
+            pass
+
+        return (_client for _client in self.deployment_clients if _client["hostname"] == deploy_client).next()
 
     def get_license_pool_usage(self, pool):
         used = self.get_license_pool_used_bytes(pool)

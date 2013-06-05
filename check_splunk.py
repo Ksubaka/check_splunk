@@ -133,8 +133,12 @@ class CheckSplunk(pynagios.Plugin):
         pynagios.make_option("--output", type="string", help="Host/port pair of a forward-server"),
     )
 
-    cluster_peer_opts = OptionGroup("check_cluster_peer Options", "Options for cluster peer check",
+    check_cluster_peer_opts = OptionGroup("check_cluster_peer Options", "Options for cluster peer check",
         pynagios.make_option("--cluster-peer", type="string", help="Name of a cluster slave (indexer)"),
+    )
+
+    check_deployment_client_opts = OptionGroup("check_deployment_client Options", "Options for deployment client check",
+        pynagios.make_option("--deployment-client", type="string", help="IP, Hostname or ID of a deployment client")
     )
 
     def __init__(self, *args, **kwargs):
@@ -345,6 +349,18 @@ class CheckSplunk(pynagios.Plugin):
 
         output = "Slave is {}".format(status)
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
+
+    @add_description("Verify a deployment client has checked in")
+    @add_usage("--deployment-client=192.168.1.1")
+    def check_deployment_client(self, splunkd):
+        phoneHomeTime = splunkd.get_deployment_client_info(self.options.deployment_client)["phoneHomeTime"]
+
+        import datetime
+        dt = datetime.datetime.strptime(phoneHomeTime, "%a %b %d %H:%M:%S %Y")
+        diff = (datetime.datetime.now() - dt).seconds
+
+        output = "Client checked in {} seconds ago".format(diff)
+        return self.response_for_value(diff, output, zabbix_ok="1", zabbix_critical="0")
 
 if __name__ == "__main__":
     CheckSplunk().check().exit()
