@@ -164,6 +164,25 @@ class SplunkServer(object):
             sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
             yield parse_sdict(sdict)
 
+    @property
+    def cluster_config(self):
+        root = self._get_url("/services/cluster/config")
+        return parse_sdict(root.find("./{http://www.w3.org/2005/Atom}entry[1]/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict"))
+
+    @property
+    def cluster_buckets(self):
+        root = self._get_url("/services/cluster/master/buckets")
+        for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
+            sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+            yield parse_sdict(sdict)
+
+    @property
+    def cluster_peers(self):
+        root = self._get_url("/services/cluster/master/peers")
+        for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
+            sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+            yield parse_sdict(sdict)
+
     def get_pool_info(self, pool):
         root = self._get_url("/servicesNS/nobody/system/licenser/pools/{pool_name}", pool_name=pool)
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
@@ -205,6 +224,9 @@ class SplunkServer(object):
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
         return parse_sdict(sdict)
 
+    def get_cluster_peer_info(self, peer):
+        return (_peer for _peer in self.cluster_peers if _peer["label"] == peer).next()
+
     def get_license_pool_usage(self, pool):
         used = self.get_license_pool_used_bytes(pool)
         capacity = self.get_license_pool_capacity(pool)
@@ -227,3 +249,6 @@ class SplunkServer(object):
 
     def get_tcp_output_status(self, output):
         return self.get_tcp_output_info(output)["status"]
+
+    def get_cluster_peer_status(self, peer):
+        return self.get_cluster_peer_info(peer)["status"]
