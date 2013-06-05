@@ -40,12 +40,14 @@ Options:
                         For check_search_peer: the indexer to verify
 
 Valid check commands:
-  cluster_complete              Check that all buckets are complete
-  cluster_peer                  Check that a cluster peer is connected to the master
-  cluster_valid                 Check that all buckets are valid
-  concurrent_searches           Check the number of current running searches
-  index                         Check the usage of a given index
-  index_latency                 Check the latency of a given index
-  license                       Check usage of a given license pool
-  output                        Check a TCP output for connectivity to the forward-server
-  search_peer                   Check connectivity to a given search peer
+  cluster_complete         	Check that all buckets are complete
+  cluster_connection       	Verify slave is connected to master
+  cluster_peer             	Check that a cluster peer is connected to the master
+  cluster_status           	Verify clustering status of slave
+  cluster_valid            	Check that all buckets are valid
+  concurrent_searches      	Check the number of current running searches
+  index                    	Check the usage of a given index
+  index_latency            	Check the latency of a given index
+  license                  	Check usage of a given license pool
+  output                   	Check a TCP output for connectivity to the forward-server
+  search_peer              	Check connectivity to a given search peer
