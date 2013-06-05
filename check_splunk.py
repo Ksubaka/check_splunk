@@ -291,5 +291,21 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("incomplete", len(incomplete))
         return result
 
+    @add_description("Verify slave is connected to master")
+    def check_cluster_connection(self, splunkd):
+        connected = bool(splunkd.cluster_slave_info["is_registered"] == "1")
+
+        master = splunkd.cluster_config["master_uri"]
+
+        output = "Connected to {}".format(master) if connected else "Disconnected"
+        return self.response_for_value(connected, output, ok_value=True, zabbix_ok="1", zabbix_critical="0")
+
+    @add_description("Verify clustering status of slave")
+    def check_cluster_status(self, splunkd):
+        status = splunkd.cluster_slave_info["status"]
+
+        output = "Slave is {}".format(status)
+        return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
+
 if __name__ == "__main__":
     CheckSplunk().check().exit()

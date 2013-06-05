@@ -183,6 +183,11 @@ class SplunkServer(object):
             sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
             yield parse_sdict(sdict)
 
+    @property
+    def cluster_slave_info(self):
+        root = self._get_url("/services/cluster/slave/info")
+        return parse_sdict(root.find("./{http://www.w3.org/2005/Atom}entry[1]/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict"))
+
     def get_pool_info(self, pool):
         root = self._get_url("/servicesNS/nobody/system/licenser/pools/{pool_name}", pool_name=pool)
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
