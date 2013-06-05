@@ -6,26 +6,32 @@ Options:
   -n                    Disable HTTPS (use http)
   -H HOSTNAME           IP or FQDN of the Splunk server
   -p PORT               splunkd Port on server, default 8089
+  -c CRITICAL           Critical level
   -U USERNAME           Username used to log into Splunk
   -P PASSWORD           Password used to log into Splunk
   -Z                    Output in Zabbix format
-  -c CRITICAL           Critical level
 
   Index Check Options:
     Options for the index checks
 
     --index=INDEX       Name of a Splunk index, default is 'main'
 
-  check_output Options:
-    Options for TCP output check
+  check_deployment_client Options:
+    Options for deployment client check
 
-    --output=OUTPUT     Host/port pair of a forward-server
+    --deployment-client=DEPLOYMENT_CLIENT
+                        IP, Hostname or ID of a deployment client
 
   check_cluster_peer Options:
     Options for cluster peer check
 
     --cluster-peer=CLUSTER_PEER
                         Name of a cluster slave (indexer)
+
+  check_output Options:
+    Options for TCP output check
+
+    --output=OUTPUT     Host/port pair of a forward-server
 
   License Check Options:
     Options for license checks
@@ -59,6 +65,9 @@ Valid check commands:
   concurrent_searches           Check the number of current running searches
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme -w 25 -c 50 concurrent_searches
+  deployment_client             Verify a deployment client has checked in
+    Usage:
+      check_splunk.py -H 127.0.0.1 -U admin -P changeme --deployment-client=192.168.1.1 deployment_client
   index                         Check the usage of a given index
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --index=main -w 80 -c 90 index
