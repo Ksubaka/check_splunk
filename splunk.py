@@ -136,6 +136,11 @@ class SplunkServer(object):
             yield parse_sdict(sdict)
 
     @property
+    def license_slave_info(self):
+        root = self._get_url("/services/licenser/localslave")
+        return parse_sdict(root.find("./{http://www.w3.org/2005/Atom}entry[1]/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict"))
+
+    @property
     def jobs(self):
         root = self._get_url("/services/search/jobs")
         for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):

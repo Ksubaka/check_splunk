@@ -1,18 +1,31 @@
 #!/usr/bin/env python
 
+from pynagios.plugin import PluginMeta as PluginMetaBase
 from splunk import SplunkServer
 from xml.dom import minidom
 
 import optparse
 import pynagios
-from pynagios.plugin import PluginMeta as PluginMetaBase
 import string
+import time
 del pynagios.Plugin._options
 
 
 def add_description(description):
     def decorator(f):
         f.description = description
+        return f
+    return decorator
+
+
+def add_usage(usage):
+    BASE_OPTIONS = "-H 127.0.0.1 -U admin -P changeme"
+    def decorator(f):
+        command = f.__name__.replace("check_", "")
+        if usage != "":
+            f.usage = "{base} {usage} {command}".format(base=BASE_OPTIONS, usage=usage, command=command)
+        else:
+            f.usage = "{base} {command}".format(base=BASE_OPTIONS, command=command)
         return f
     return decorator
 
@@ -105,23 +118,23 @@ class CheckSplunk(pynagios.Plugin):
     critical = pynagios.make_option("-c", type="int", help="Critical level")
 
     check_index_opts = OptionGroup("Index Check Options", "Options for the index checks",
-        pynagios.make_option("--index", default="main", help="For index checks: the index to check"),
+        pynagios.make_option("--index", default="main", help="Name of a Splunk index, default is 'main'"),
     )
 
     check_license_opts = OptionGroup("License Check Options", "Options for license checks",
-        pynagios.make_option("--license-pool", default="auto_generated_pool_enterprise", help="For license checks: the license pool to check"),
+        pynagios.make_option("--license-pool", default="auto_generated_pool_enterprise", help="Name of a Splunk license pool, default is 'auto_generated_pool_enterprise'"),
     )
 
     check_search_peer_opts = OptionGroup("check_search_peer Options", "Options for search peer check",
-        pynagios.make_option("--search-peer", type="string", help="For check_search_peer: the indexer to verify"),
+        pynagios.make_option("--search-peer", type="string", help="Name of an indexer used by this search head"),
     )
 
     check_output_opts = OptionGroup("check_output Options", "Options for TCP output check",
-        pynagios.make_option("--output", type="string", help="For check_output: the TCP output to verify"),
+        pynagios.make_option("--output", type="string", help="Host/port pair of a forward-server"),
     )
 
     cluster_peer_opts = OptionGroup("check_cluster_peer Options", "Options for cluster peer check",
-        pynagios.make_option("--cluster-peer", type="string", help="For check_cluster_peer: the name of the peer to verify"),
+        pynagios.make_option("--cluster-peer", type="string", help="Name of a cluster slave (indexer)"),
     )
 
     def __init__(self, *args, **kwargs):
@@ -132,9 +145,12 @@ class CheckSplunk(pynagios.Plugin):
                 f = getattr(self, attr)
                 command = attr[6:]
                 if hasattr(f, "description"):
-                    epilog_lines.append("  {}\t{}".format(string.ljust(command, 25), f.description))
+                    epilog_lines.append("  {}{}".format(string.ljust(command, 30), f.description))
                 else:
                     epilog_lines.append("  {}".format(command))
+                if hasattr(f, "usage"):
+                    epilog_lines.append("    Usage:")
+                    epilog_lines.append(self._option_parser.expand_prog_name("      %prog {}".format(f.usage)))
 
         self._option_parser.epilog = "\n".join(epilog_lines)
 
@@ -193,6 +209,7 @@ class CheckSplunk(pynagios.Plugin):
             return pynagios.Response(pynagios.UNKNOWN, "Invalid check requested")
 
     @add_description("Check the usage of a given index")
+    @add_usage("--index=main -w 80 -c 90")
     def check_index(self, splunkd):
         (used, capacity, pct) = splunkd.get_index_usage(self.options.index)
 
@@ -203,6 +220,7 @@ class CheckSplunk(pynagios.Plugin):
         return result
 
     @add_description("Check the latency of a given index")
+    @add_usage("--index=main -w 5 -c 10")
     def check_index_latency(self, splunkd):
         latency = splunkd.get_index_latency(self.options.index)
 
@@ -212,6 +230,7 @@ class CheckSplunk(pynagios.Plugin):
         return result
 
     @add_description("Check usage of a given license pool")
+    @add_usage("--license-pool=auto_generated_pool_enterprise")
     def check_license(self, splunkd):
         (used, capacity, pct) = splunkd.get_license_pool_usage(self.options.license_pool)
 
@@ -221,7 +240,20 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("license_capacity", capacity, "B")
         return result
 
+    @add_description("Check connectivity to the license master")
+    @add_usage("-w 60 -c 120")
+    def check_license_master(self, splunkd):
+        info = splunkd.license_slave_info
+        last_success = info["last_master_contact_success_time"]
+        last_attempt = info["last_master_contact_attempt_time"]
+
+        success_diff = int(time.time()) - int(last_success)
+
+        output = "Last connected to master {} seconds ago".format(success_diff)
+        return self.response_for_value(success_diff, output, zabbix_ok="1", zabbix_critical="0")
+
     @add_description("Check connectivity to a given search peer")
+    @add_usage("--search-peer=acme-corp-indexer-01")
     def check_search_peer(self, splunkd):
         status = splunkd.get_search_peer_status(self.options.search_peer)
 
@@ -229,6 +261,7 @@ class CheckSplunk(pynagios.Plugin):
         return self.response_for_value(status, output, critical_value="Down", zabbix_ok="1", zabbix_critical="0")
         
     @add_description("Check the number of current running searches")
+    @add_usage("-w 25 -c 50")
     def check_concurrent_searches(self, splunkd):
         searches = len(list(splunkd.running_jobs))
 
@@ -238,6 +271,7 @@ class CheckSplunk(pynagios.Plugin):
         return result
 
     @add_description("Check a TCP output for connectivity to the forward-server")
+    @add_usage("--output=192.168.1.1:9997")
     def check_output(self, splunkd):
         status = splunkd.get_tcp_output_status(self.options.output)
 
@@ -245,6 +279,7 @@ class CheckSplunk(pynagios.Plugin):
         return self.response_for_value(status, output, ok_value="connect_done", zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Check that a cluster peer is connected to the master")
+    @add_usage("--cluster-peer=acme-corp-indexer-01")
     def check_cluster_peer(self, splunkd):
         status = splunkd.get_cluster_peer_status(self.options.cluster_peer)
 
@@ -252,6 +287,7 @@ class CheckSplunk(pynagios.Plugin):
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Check that all buckets are valid")
+    @add_usage("")
     def check_cluster_valid(self, splunkd):
         config = splunkd.cluster_config
 
@@ -272,6 +308,7 @@ class CheckSplunk(pynagios.Plugin):
         return result
 
     @add_description("Check that all buckets are complete")
+    @add_usage("")
     def check_cluster_complete(self, splunkd):
         config = splunkd.cluster_config
 
@@ -292,6 +329,7 @@ class CheckSplunk(pynagios.Plugin):
         return result
 
     @add_description("Verify slave is connected to master")
+    @add_usage("")
     def check_cluster_connection(self, splunkd):
         connected = bool(splunkd.cluster_slave_info["is_registered"] == "1")
 
@@ -301,6 +339,7 @@ class CheckSplunk(pynagios.Plugin):
         return self.response_for_value(connected, output, ok_value=True, zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Verify clustering status of slave")
+    @add_usage("")
     def check_cluster_status(self, splunkd):
         status = splunkd.cluster_slave_info["status"]
 
