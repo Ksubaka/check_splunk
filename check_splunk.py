@@ -212,7 +212,7 @@ class CheckSplunk(pynagios.Plugin):
         else:
             return pynagios.Response(pynagios.UNKNOWN, "Invalid check requested")
 
-    @add_description("Check the usage of a given index")
+    @add_description("Check the usage of a given index (indexer)")
     @add_usage("--index=main -w 80 -c 90")
     def check_index(self, splunkd):
         (used, capacity, pct) = splunkd.get_index_usage(self.options.index)
@@ -223,7 +223,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("maxTotalDataSizeMB", capacity, "B")
         return result
 
-    @add_description("Check the latency of a given index")
+    @add_description("Check the latency of a given index (indexer)")
     @add_usage("--index=main -w 5 -c 10")
     def check_index_latency(self, splunkd):
         latency = splunkd.get_index_latency(self.options.index)
@@ -233,7 +233,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("latency", latency, "s")
         return result
 
-    @add_description("Check usage of a given license pool")
+    @add_description("Check usage of a given license pool (licensemaster)")
     @add_usage("--license-pool=auto_generated_pool_enterprise")
     def check_license(self, splunkd):
         (used, capacity, pct) = splunkd.get_license_pool_usage(self.options.license_pool)
@@ -244,7 +244,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("license_capacity", capacity, "B")
         return result
 
-    @add_description("Check connectivity to the license master")
+    @add_description("Check connectivity to the license master (all)")
     @add_usage("-w 60 -c 120")
     def check_license_master(self, splunkd):
         info = splunkd.license_slave_info
@@ -256,7 +256,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "Last connected to master {} seconds ago".format(success_diff)
         return self.response_for_value(success_diff, output, zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Check connectivity to a given search peer")
+    @add_description("Check connectivity to a given search peer (searchhead, cluster-master)")
     @add_usage("--search-peer=acme-corp-indexer-01")
     def check_search_peer(self, splunkd):
         status = splunkd.get_search_peer_status(self.options.search_peer)
@@ -264,7 +264,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "Search peer is {}".format(status)
         return self.response_for_value(status, output, critical_value="Down", zabbix_ok="1", zabbix_critical="0")
         
-    @add_description("Check the number of current running searches")
+    @add_description("Check the number of current running searches (searchhead)")
     @add_usage("-w 25 -c 50")
     def check_concurrent_searches(self, splunkd):
         searches = len(list(splunkd.running_jobs))
@@ -274,7 +274,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("searches", searches)
         return result
 
-    @add_description("Check a TCP output for connectivity to the forward-server")
+    @add_description("Check a TCP output for connectivity to the forward-server (forwarder)")
     @add_usage("--output=192.168.1.1:9997")
     def check_output(self, splunkd):
         status = splunkd.get_tcp_output_status(self.options.output)
@@ -282,7 +282,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "{} is currently in status '{}'".format(self.options.output, status)
         return self.response_for_value(status, output, ok_value="connect_done", zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Check that a cluster peer is connected to the master")
+    @add_description("Check that a cluster peer is connected to the master (indexer)")
     @add_usage("--cluster-peer=acme-corp-indexer-01")
     def check_cluster_peer(self, splunkd):
         status = splunkd.get_cluster_peer_status(self.options.cluster_peer)
@@ -290,7 +290,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "Cluster peer '{}' is {}".format(self.options.cluster_peer, status)
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Check that all buckets are valid")
+    @add_description("Check that all buckets are valid (cluster-master)")
     @add_usage("")
     def check_cluster_valid(self, splunkd):
         config = splunkd.cluster_config
@@ -311,7 +311,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("invalid", len(invalid))
         return result
 
-    @add_description("Check that all buckets are complete")
+    @add_description("Check that all buckets are complete (cluster-master)")
     @add_usage("")
     def check_cluster_complete(self, splunkd):
         config = splunkd.cluster_config
@@ -332,7 +332,7 @@ class CheckSplunk(pynagios.Plugin):
         result.set_perf_data("incomplete", len(incomplete))
         return result
 
-    @add_description("Verify slave is connected to master")
+    @add_description("Verify slave is connected to master (indexer)")
     @add_usage("")
     def check_cluster_connection(self, splunkd):
         connected = bool(splunkd.cluster_slave_info["is_registered"] == "1")
@@ -342,7 +342,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "Connected to {}".format(master) if connected else "Disconnected"
         return self.response_for_value(connected, output, ok_value=True, zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Verify clustering status of slave")
+    @add_description("Verify clustering status of slave (indexer)")
     @add_usage("")
     def check_cluster_status(self, splunkd):
         status = splunkd.cluster_slave_info["status"]
@@ -350,7 +350,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "Slave is {}".format(status)
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Verify a deployment client has checked in")
+    @add_description("Verify a deployment client has checked in (deployment-server)")
     @add_usage("--deployment-client=192.168.1.1")
     def check_deployment_client(self, splunkd):
         phoneHomeTime = splunkd.get_deployment_client_info(self.options.deployment_client)["phoneHomeTime"]
