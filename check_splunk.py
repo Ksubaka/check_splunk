@@ -282,7 +282,7 @@ class CheckSplunk(pynagios.Plugin):
         output = "{} is currently in status '{}'".format(self.options.output, status)
         return self.response_for_value(status, output, ok_value="connect_done", zabbix_ok="1", zabbix_critical="0")
 
-    @add_description("Check that a cluster peer is connected to the master (indexer)")
+    @add_description("Check that a cluster peer is connected to the master (cluster-master)")
     @add_usage("--cluster-peer=acme-corp-indexer-01")
     def check_cluster_peer(self, splunkd):
         status = splunkd.get_cluster_peer_status(self.options.cluster_peer)
