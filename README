@@ -48,42 +48,42 @@ Options:
                         Name of an indexer used by this search head
 
 Valid check commands:
-  cluster_complete              Check that all buckets are complete
+  cluster_complete              Check that all buckets are complete (cluster-master)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_complete
-  cluster_connection            Verify slave is connected to master
+  cluster_connection            Verify slave is connected to master (indexer)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_connection
-  cluster_peer                  Check that a cluster peer is connected to the master
+  cluster_peer                  Check that a cluster peer is connected to the master (cluster-master)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --cluster-peer=acme-corp-indexer-01 cluster_peer
-  cluster_status                Verify clustering status of slave
+  cluster_status                Verify clustering status of slave (indexer)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_status
-  cluster_valid                 Check that all buckets are valid
+  cluster_valid                 Check that all buckets are valid (cluster-master)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme cluster_valid
-  concurrent_searches           Check the number of current running searches
+  concurrent_searches           Check the number of current running searches (searchhead)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme -w 25 -c 50 concurrent_searches
-  deployment_client             Verify a deployment client has checked in
+  deployment_client             Verify a deployment client has checked in (deployment-server)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --deployment-client=192.168.1.1 deployment_client
-  index                         Check the usage of a given index
+  index                         Check the usage of a given index (indexer)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --index=main -w 80 -c 90 index
-  index_latency                 Check the latency of a given index
+  index_latency                 Check the latency of a given index (indexer)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --index=main -w 5 -c 10 index_latency
-  license                       Check usage of a given license pool
+  license                       Check usage of a given license pool (licensemaster)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --license-pool=auto_generated_pool_enterprise license
-  license_master                Check connectivity to the license master
+  license_master                Check connectivity to the license master (all)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme -w 60 -c 120 license_master
-  output                        Check a TCP output for connectivity to the forward-server
+  output                        Check a TCP output for connectivity to the forward-server (forwarder)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --output=192.168.1.1:9997 output
-  search_peer                   Check connectivity to a given search peer
+  search_peer                   Check connectivity to a given search peer (searchhead, cluster-master)
     Usage:
       check_splunk.py -H 127.0.0.1 -U admin -P changeme --search-peer=acme-corp-indexer-01 search_peer
