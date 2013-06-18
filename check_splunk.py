@@ -130,6 +130,7 @@ class CheckSplunk(pynagios.Plugin):
     )
 
     check_output_opts = OptionGroup("check_output Options", "Options for TCP output check",
+        pynagios.make_option("--appname", type="string", help="App containing the output"),
         pynagios.make_option("--output", type="string", help="Host/port pair of a forward-server"),
     )
 
@@ -277,7 +278,7 @@ class CheckSplunk(pynagios.Plugin):
     @add_description("Check a TCP output for connectivity to the forward-server")
     @add_usage("--output=192.168.1.1:9997")
     def check_output(self, splunkd):
-        status = splunkd.get_tcp_output_status(self.options.output)
+        status = splunkd.get_tcp_output_status(self.options.appname, self.options.output)
 
         output = "{} is currently in status '{}'".format(self.options.output, status)
         return self.response_for_value(status, output, ok_value="connect_done", zabbix_ok="1", zabbix_critical="0")

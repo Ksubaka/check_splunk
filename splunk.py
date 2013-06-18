@@ -236,8 +236,8 @@ class SplunkServer(object):
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
         return parse_sdict(sdict)
 
-    def get_tcp_output_info(self, output):
-        root = self._get_url("/servicesNS/nobody/cwru_all_deployment_outputs/data/outputs/tcp/server/{output_name}", output_name=output)
+    def get_tcp_output_info(self, app, output):
+        root = self._get_url("/servicesNS/nobody/{app_name}/data/outputs/tcp/server/{output_name}", app_name=app, output_name=output)
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
         return parse_sdict(sdict)
 
@@ -277,8 +277,9 @@ class SplunkServer(object):
     def get_search_peer_status(self, peer):
         return self.get_search_peer_info(peer)["status"]
 
-    def get_tcp_output_status(self, output):
-        return self.get_tcp_output_info(output)["status"]
+    def get_tcp_output_status(self, app, output):
+        from urllib import quote_plus
+        return self.get_tcp_output_info(app, quote_plus(output))["status"]
 
     def get_cluster_peer_status(self, peer):
         return self.get_cluster_peer_info(peer)["status"]
