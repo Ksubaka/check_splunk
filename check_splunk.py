@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from pynagios.plugin import PluginMeta as PluginMetaBase
-from splunk import SplunkServer
+from requests import ConnectionError
+from splunk import ApiError,SplunkServer
 from xml.dom import minidom
 
 import optparse
@@ -123,6 +124,7 @@ class CheckSplunk(pynagios.Plugin):
 
     check_license_opts = OptionGroup("License Check Options", "Options for license checks",
         pynagios.make_option("--license-pool", default="auto_generated_pool_enterprise", help="Name of a Splunk license pool, default is 'auto_generated_pool_enterprise'"),
+        pynagios.make_option("--capacity", default=0, help="Capactiy to consider 100%, defaults to pool capacity"),
     )
 
     check_search_peer_opts = OptionGroup("check_search_peer Options", "Options for search peer check",
@@ -209,19 +211,27 @@ class CheckSplunk(pynagios.Plugin):
         if check is None:
             check = getattr(self, self.args[1], None)
         if callable(check):
-            return check(splunkd)
+            try:
+                return check(splunkd)
+            except ConnectionError:
+                return pynagios.Response(pynagios.CRITICAL, "Unable to connect to splunkd")
+            except ApiError as e:
+                return pynagios.Response(pynagios.CRITICAL, str(e))
         else:
             return pynagios.Response(pynagios.UNKNOWN, "Invalid check requested")
 
     @add_description("Check the usage of a given index (indexer)")
     @add_usage("--index=main -w 80 -c 90")
     def check_index(self, splunkd):
-        (used, capacity, pct) = splunkd.get_index_usage(self.options.index)
+        try:
+            (used, capacity, pct) = splunkd.get_index_usage(self.options.index)
+        except AttributeError:
+            return pynagios.Response(pynagios.CRITICAL, "{} index not found".format(self.options.index))
 
         output = "{}% of MaxTotalDBSize ({}) is used".format(pct, capacity)
         result = self.response_for_value(pct, output)
-        result.set_perf_data("currentDBSizeMB", used, "B")
-        result.set_perf_data("maxTotalDataSizeMB", capacity, "B")
+        result.set_perf_data("currentDBSizeMB", used * 1048576, "B")
+        result.set_perf_data("maxTotalDataSizeMB", capacity * 1048576, "B")
         return result
 
     @add_description("Check the latency of a given index (indexer)")
@@ -238,6 +248,10 @@ class CheckSplunk(pynagios.Plugin):
     @add_usage("--license-pool=auto_generated_pool_enterprise")
     def check_license(self, splunkd):
         (used, capacity, pct) = splunkd.get_license_pool_usage(self.options.license_pool)
+
+        if self.options.capacity != 0:
+            capacity = int(self.options.capacity)
+            pct = int(used * 100 / capacity)
 
         output = "{}% of license capacity ({}) is used".format(pct, capacity)
         result = self.response_for_value(pct, output)
@@ -323,7 +337,7 @@ class CheckSplunk(pynagios.Plugin):
                 continue
             complete = 0
             for (peer,info) in bucket["peers"].items():
-                if info["status"] == "Complete":
+                if info["status"] in ("Complete", "StreamingSource", "StreamingTarget"):
                     complete += 1
             if complete < int(config["replication_factor"]):
                 incomplete.append(bucket)
@@ -354,7 +368,10 @@ class CheckSplunk(pynagios.Plugin):
     @add_description("Verify a deployment client has checked in (deployment-server)")
     @add_usage("--deployment-client=192.168.1.1")
     def check_deployment_client(self, splunkd):
-        phoneHomeTime = splunkd.get_deployment_client_info(self.options.deployment_client)["phoneHomeTime"]
+        try:
+            phoneHomeTime = splunkd.get_deployment_client_info(self.options.deployment_client)["phoneHomeTime"]
+        except StopIteration:
+            return pynagios.Response(pynagios.CRITICAL, "Unable to get phone home time for {}".format(self.options.deployment_client))
 
         import datetime
         dt = datetime.datetime.strptime(phoneHomeTime, "%a %b %d %H:%M:%S %Y")
@@ -363,5 +380,40 @@ class CheckSplunk(pynagios.Plugin):
         output = "Client checked in {} seconds ago".format(diff)
         return self.response_for_value(diff, output, zabbix_ok="1", zabbix_critical="0")
 
+#    @add_description("Return the given field from the first search result of the given search")
+#    @add_usage("--search='host=X sourcetype=Y' --earliest-time='-1h@h' --latest-time='@h' --field=Z")
+#    def check_search_result(self, splunkd):
+#        result = splunkd.get_search_first_result(self.options.search, self.options.field, self.options.earliest, self.options.latest)
+#
+#        output = "Result: {}={}".format(field, result)
+#        return self.response_for_value(result, output)
+
+    @add_description("Check bundle replication status")
+    def check_distributed_search_peers(self, splunkd):
+        failedPeers = list()
+        for peer in splunkd.distributed_search_peers:
+            if peer["replicationStatus"] != "Successful":
+                failedPeers.append(peer["guid"])
+
+        if len(failedPeers) == 0:
+            return pynagios.Response(pynagios.OK, "All peers replicating successfully")
+        else:
+            return pynagios.Response(pynagios.CRITICAL, "Peers failed replication: %s" % ",".join(failedPeers))
+
+    @add_description("Check for messages displayed in the Splunk UI")
+    @add_usage("")
+    def check_messages(self, splunkd):
+        count = len(list(splunkd.messages))
+
+        output = "{} messages in Splunk UI".format(count)
+        return self.response_for_value(count, output, ok_value=0, zabbix_ok="1", zabbix_critical="0")
+
 if __name__ == "__main__":
-    CheckSplunk().check().exit()
+    try:
+        CheckSplunk().check().exit()
+    except Exception as e:
+        import sys
+        import traceback
+        print "CRITICAL :: Exception follows"
+        print traceback.format_exc().strip()
+        sys.exit(2)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from splunk import SplunkServer
+from splunk import ApiError,SplunkServer
 
 import datetime
 import pynagios
@@ -16,7 +16,10 @@ class CheckSplunkOpsecLea(pynagios.Plugin):
 
     def check(self):
         splunkd = SplunkServer(self.options.hostname, self.options.username, self.options.password, self.options.port, self.options.use_ssl)
-        root = splunkd._get_url("/servicesNS/nobody/Splunk_TA_opseclea_linux22/opsec/entity_log_status/{0}".format(self.options.entity))
+        try:
+            root = splunkd._get_url("/servicesNS/nobody/Splunk_TA_opseclea_linux22/opsec/entity_log_status/{0}".format(self.options.entity))
+        except ApiError as e:
+            return pynagios.Response(pynagios.CRITICAL, str(e))
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
         skey = sdict.find("./{http://dev.splunk.com/ns/rest}key[@name='last_log_update_timestamp']")
 

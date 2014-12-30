@@ -8,6 +8,9 @@ import xml.etree.ElementTree as ET
 class TimeoutError(Exception):
     pass
 
+class ApiError(Exception):
+    pass
+
 
 def parse_skey(skey):
     if len(skey) == 0:
@@ -56,7 +59,13 @@ class SplunkServer(object):
         r = self.session.get(url, verify=False)
         if cache:
             self.cache["urls"][url] = ET.fromstring(r.text)
+        self.check_for_error(self.cache["urls"][url])
         return self.cache["urls"][url]
+
+    def check_for_error(self, root):
+        msg = root.find("./messages/msg[@type='ERROR']")
+        if msg is not None:
+            raise ApiError(msg.text.strip())
 
     def _run_search(self, search, as_list=False, **kwargs):
         url = "{}{}".format(self.server, "/services/search/jobs")
@@ -150,10 +159,8 @@ class SplunkServer(object):
     @property
     def running_jobs(self):
         for job in self.jobs:
-            statuses = [ bool(int(job[k])) for k in ("isDone", "isFailed", "isFinalized",) ]
-            if any(statuses):
-                continue
-            yield job
+            if job["dispatchState"] == "RUNNING":
+                yield job
 
     @property
     def search_peers(self):
@@ -191,14 +198,33 @@ class SplunkServer(object):
     @property
     def deployment_clients(self):
         root = self._get_url("/servicesNS/nobody/system/admin/deploymentserver/default/default.Clients?count=-1")
+        if root.find("messages") != None:
+            root = self._get_url("/services/deployment/server/clients?count=0")
         for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
             sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
-            yield parse_sdict(sdict)
+            d = parse_sdict(sdict)
+            if "lastPhoneHomeTime" in d:
+                d["phoneHomeTime"] = datetime.datetime.fromtimestamp(int(d["lastPhoneHomeTime"])).strftime('%a %b %d %H:%M:%S %Y')
+            yield d
 
     @property
     def cluster_slave_info(self):
         root = self._get_url("/services/cluster/slave/info")
         return parse_sdict(root.find("./{http://www.w3.org/2005/Atom}entry[1]/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict"))
+
+    @property
+    def distributed_search_peers(self):
+        root = self._get_url("/servicesNS/-/launcher/search/distributed/peers")
+        for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
+            sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+            yield parse_sdict(sdict)
+
+    @property
+    def messages(self):
+        root = self._get_url("/services/messages")
+        for entry in root.iterfind("./{http://www.w3.org/2005/Atom}entry"):
+            sdict = entry.find("./{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+            yield parse_sdict(sdict)
 
     def get_pool_info(self, pool):
         root = self._get_url("/servicesNS/nobody/system/licenser/pools/{pool_name}", pool_name=pool)
@@ -237,7 +263,7 @@ class SplunkServer(object):
         return parse_sdict(sdict)
 
     def get_tcp_output_info(self, app, output):
-        root = self._get_url("/servicesNS/nobody/{app_name}/data/outputs/tcp/server/{output_name}", app_name=app, output_name=output)
+        root = self._get_url("/servicesNS/nobody/-/data/outputs/tcp/server/{output_name}", output_name=output)
         sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
         return parse_sdict(sdict)
 
@@ -283,3 +309,19 @@ class SplunkServer(object):
 
     def get_cluster_peer_status(self, peer):
         return self.get_cluster_peer_info(peer)["status"]
+
+    def get_search_event_count(self, search, earlist_time, latest_time):
+        results = self._run_search(search, as_list=True, earliest_time=earliest_time, latest_time=latest_time)
+        return len(results)
+
+    def get_search_first_result(self, search, field, earliest_time, latest_time):
+        results = self._run_search(search, as_list=True, earliest_time=earliest_time, latest_time=latest_time)
+        return results[0][field]
+
+    def get_distributed_search_peer_info(self, peer):
+        root = self._get_url("/servicesNS/-/launcher/search/distributed/peers/{peer_name}", peer_name=peer)
+        sdict = root.find("./{http://www.w3.org/2005/Atom}entry/{http://www.w3.org/2005/Atom}content/{http://dev.splunk.com/ns/rest}dict")
+        return parse_sdict(sdict)
+
+    def get_distributed_search_peer_status(self, peer):
+        return self.get_distributed_search_peer_info(peer)["replicationStatus"]
