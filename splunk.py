@@ -68,10 +68,10 @@ class SplunkServer(object):
             raise ApiError(msg.text.strip())
 
     def _run_search(self, search, as_list=False, **kwargs):
-        url = "{}{}".format(self.server, "/services/search/jobs")
+        url = "{0}{1}".format(self.server, "/services/search/jobs")
         data = dict()
         data.update(kwargs)
-        data["search"] = "search {}".format(search)
+        data["search"] = "search {0}".format(search)
 
         # Get the search ID
         r = self.session.post(url, data=data, verify=False)
@@ -80,7 +80,7 @@ class SplunkServer(object):
         sid = xml.find("./sid").text
 
         # Wait for search to complete
-        url = "{}{}".format(self.server, "/services/search/jobs/{}/results".format(sid))
+        url = "{0}{1}".format(self.server, "/services/search/jobs/{0}/results".format(sid))
 
         timeout = datetime.datetime.now() + datetime.timedelta(seconds=self.timeout)
         while datetime.datetime.now() < timeout:
@@ -296,7 +296,7 @@ class SplunkServer(object):
         return (used, capacity, pct_used)
 
     def get_index_latency(self, index, span=30):
-        search = "index={} | eval latency=round((_indextime - _time),2) | stats avg(latency) AS avglat | eval avglat=round(avglat,2)".format(index)
+        search = "index={0} | eval latency=round((_indextime - _time),2) | stats avg(latency) AS avglat | eval avglat=round(avglat,2)".format(index)
         earliest_time = datetime.datetime.now() - datetime.timedelta(minutes=span)
         return float(self._run_search(search, as_list=True, earliest_time=earliest_time.isoformat())[0]["avglat"])
 

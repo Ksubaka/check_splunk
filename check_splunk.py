@@ -152,12 +152,12 @@ class CheckSplunk(pynagios.Plugin):
                 f = getattr(self, attr)
                 command = attr[6:]
                 if hasattr(f, "description"):
-                    epilog_lines.append("  {}{}".format(string.ljust(command, 30), f.description))
+                    epilog_lines.append("  {0}{1}".format(string.ljust(command, 30), f.description))
                 else:
-                    epilog_lines.append("  {}".format(command))
+                    epilog_lines.append("  {0}".format(command))
                 if hasattr(f, "usage"):
                     epilog_lines.append("    Usage:")
-                    epilog_lines.append(self._option_parser.expand_prog_name("      %prog {}".format(f.usage)))
+                    epilog_lines.append(self._option_parser.expand_prog_name("      %prog {0}".format(f.usage)))
 
         self._option_parser.epilog = "\n".join(epilog_lines)
 
@@ -207,7 +207,7 @@ class CheckSplunk(pynagios.Plugin):
         #except:
         #    return pynagios.Response(pynagios.UNKNOWN, "Failed to login to splunkd")
 
-        check = getattr(self, "check_{}".format(self.args[1]), None)
+        check = getattr(self, "check_{0}".format(self.args[1]), None)
         if check is None:
             check = getattr(self, self.args[1], None)
         if callable(check):
@@ -226,9 +226,9 @@ class CheckSplunk(pynagios.Plugin):
         try:
             (used, capacity, pct) = splunkd.get_index_usage(self.options.index)
         except AttributeError:
-            return pynagios.Response(pynagios.CRITICAL, "{} index not found".format(self.options.index))
+            return pynagios.Response(pynagios.CRITICAL, "{0} index not found".format(self.options.index))
 
-        output = "{}% of MaxTotalDBSize ({}) is used".format(pct, capacity)
+        output = "{0}% of MaxTotalDBSize ({1}) is used".format(pct, capacity)
         result = self.response_for_value(pct, output)
         result.set_perf_data("currentDBSizeMB", used * 1048576, "B")
         result.set_perf_data("maxTotalDataSizeMB", capacity * 1048576, "B")
@@ -239,7 +239,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_index_latency(self, splunkd):
         latency = splunkd.get_index_latency(self.options.index)
 
-        output = "Average latency is {} seconds".format(latency)
+        output = "Average latency is {0} seconds".format(latency)
         result = self.response_for_value(latency, output)
         result.set_perf_data("latency", latency, "s")
         return result
@@ -253,7 +253,7 @@ class CheckSplunk(pynagios.Plugin):
             capacity = int(self.options.capacity)
             pct = int(used * 100 / capacity)
 
-        output = "{}% of license capacity ({}) is used".format(pct, capacity)
+        output = "{0}% of license capacity ({1}) is used".format(pct, capacity)
         result = self.response_for_value(pct, output)
         result.set_perf_data("license_used", used, "B")
         result.set_perf_data("license_capacity", capacity, "B")
@@ -268,7 +268,7 @@ class CheckSplunk(pynagios.Plugin):
 
         success_diff = int(time.time()) - int(last_success)
 
-        output = "Last connected to master {} seconds ago".format(success_diff)
+        output = "Last connected to master {0} seconds ago".format(success_diff)
         return self.response_for_value(success_diff, output, zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Check connectivity to a given search peer (searchhead, cluster-master)")
@@ -276,7 +276,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_search_peer(self, splunkd):
         status = splunkd.get_search_peer_status(self.options.search_peer)
 
-        output = "Search peer is {}".format(status)
+        output = "Search peer is {0}".format(status)
         return self.response_for_value(status, output, critical_value="Down", zabbix_ok="1", zabbix_critical="0")
         
     @add_description("Check the number of current running searches (searchhead)")
@@ -284,7 +284,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_concurrent_searches(self, splunkd):
         searches = len(list(splunkd.running_jobs))
 
-        output = "{} searches are currently running".format(searches)
+        output = "{0} searches are currently running".format(searches)
         result = self.response_for_value(searches, output)
         result.set_perf_data("searches", searches)
         return result
@@ -294,7 +294,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_output(self, splunkd):
         status = splunkd.get_tcp_output_status(self.options.appname, self.options.output)
 
-        output = "{} is currently in status '{}'".format(self.options.output, status)
+        output = "{0} is currently in status '{1}'".format(self.options.output, status)
         return self.response_for_value(status, output, ok_value="connect_done", zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Check that a cluster peer is connected to the master (cluster-master)")
@@ -302,7 +302,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_cluster_peer(self, splunkd):
         status = splunkd.get_cluster_peer_status(self.options.cluster_peer)
 
-        output = "Cluster peer '{}' is {}".format(self.options.cluster_peer, status)
+        output = "Cluster peer '{0}' is {1}".format(self.options.cluster_peer, status)
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Check that all buckets are valid (cluster-master)")
@@ -321,7 +321,7 @@ class CheckSplunk(pynagios.Plugin):
             if valid < int(config["search_factor"]):
                 invalid.append(bucket)
 
-        output = "{} invalid buckets".format(len(invalid))
+        output = "{0} invalid buckets".format(len(invalid))
         result = self.response_for_value(len(invalid), output, ok_value=0)
         result.set_perf_data("invalid", len(invalid))
         return result
@@ -342,7 +342,7 @@ class CheckSplunk(pynagios.Plugin):
             if complete < int(config["replication_factor"]):
                 incomplete.append(bucket)
 
-        output = "{} incomplete buckets".format(len(incomplete))
+        output = "{0} incomplete buckets".format(len(incomplete))
         result = self.response_for_value(len(incomplete), output, ok_value=0)
         result.set_perf_data("incomplete", len(incomplete))
         return result
@@ -354,7 +354,7 @@ class CheckSplunk(pynagios.Plugin):
 
         master = splunkd.cluster_config["master_uri"]
 
-        output = "Connected to {}".format(master) if connected else "Disconnected"
+        output = "Connected to {0}".format(master) if connected else "Disconnected"
         return self.response_for_value(connected, output, ok_value=True, zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Verify clustering status of slave (indexer)")
@@ -362,7 +362,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_cluster_status(self, splunkd):
         status = splunkd.cluster_slave_info["status"]
 
-        output = "Slave is {}".format(status)
+        output = "Slave is {0}".format(status)
         return self.response_for_value(status, output, ok_value="Up", zabbix_ok="1", zabbix_critical="0")
 
     @add_description("Verify a deployment client has checked in (deployment-server)")
@@ -371,13 +371,13 @@ class CheckSplunk(pynagios.Plugin):
         try:
             phoneHomeTime = splunkd.get_deployment_client_info(self.options.deployment_client)["phoneHomeTime"]
         except StopIteration:
-            return pynagios.Response(pynagios.CRITICAL, "Unable to get phone home time for {}".format(self.options.deployment_client))
+            return pynagios.Response(pynagios.CRITICAL, "Unable to get phone home time for {0}".format(self.options.deployment_client))
 
         import datetime
         dt = datetime.datetime.strptime(phoneHomeTime, "%a %b %d %H:%M:%S %Y")
         diff = (datetime.datetime.now() - dt).seconds
 
-        output = "Client checked in {} seconds ago".format(diff)
+        output = "Client checked in {0} seconds ago".format(diff)
         return self.response_for_value(diff, output, zabbix_ok="1", zabbix_critical="0")
 
 #    @add_description("Return the given field from the first search result of the given search")
@@ -385,7 +385,7 @@ class CheckSplunk(pynagios.Plugin):
 #    def check_search_result(self, splunkd):
 #        result = splunkd.get_search_first_result(self.options.search, self.options.field, self.options.earliest, self.options.latest)
 #
-#        output = "Result: {}={}".format(field, result)
+#        output = "Result: {0}={1}".format(field, result)
 #        return self.response_for_value(result, output)
 
     @add_description("Check bundle replication status")
@@ -405,7 +405,7 @@ class CheckSplunk(pynagios.Plugin):
     def check_messages(self, splunkd):
         count = len(list(splunkd.messages))
 
-        output = "{} messages in Splunk UI".format(count)
+        output = "{0} messages in Splunk UI".format(count)
         return self.response_for_value(count, output, ok_value=0, zabbix_ok="1", zabbix_critical="0")
 
 if __name__ == "__main__":

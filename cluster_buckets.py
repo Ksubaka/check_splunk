@@ -29,6 +29,6 @@ for bucket in splunkd.cluster_buckets:
         if info["status"] == "Complete":
             complete += 1
     if valid < int(config["search_factor"]):
-        print "Bucket {} is invalid (does not meet search factor of {}".format(bucket["title"], config["search_factor"])
+        print "Bucket {0} is invalid (does not meet search factor of {1}".format(bucket["title"], config["search_factor"])
     if complete < int(config["replication_factor"]):
-        print "Bucket {} is incomplete (does not meet replication factor of {}".format(bucket["title"], config["replication_factor"])
+        print "Bucket {0} is incomplete (does not meet replication factor of {1}".format(bucket["title"], config["replication_factor"])
