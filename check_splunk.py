@@ -11,6 +11,10 @@ import string
 import time
 del pynagios.Plugin._options
 
+from requests.packages.urllib3 import disable_warnings
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+disable_warnings(InsecureRequestWarning)
+
 
 def add_description(description):
     def decorator(f):
